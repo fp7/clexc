@@ -9,12 +9,21 @@
 
 (set! *warn-on-reflection* true)
 
+(defn ^:private set-value
+  [^Cell cell cell-value]
+  (cond
+    (string? cell-value) (.setCellValue cell ^String cell-value)
+    (number? cell-value) (.setCellValue cell (double cell-value))
+    (boolean? cell-value) (.setCellValue cell (boolean cell-value))
+    (nil? cell-value) (.setBlank cell)
+    :else (throw (ex-info "Value can not be set in cell" {:type (type cell-value)}))))
+
 (defn ^:private add-row
   [^Sheet sheet ^long cnt row-data]
   (let [^Row row (.createRow sheet cnt)]
     (doseq [[cell-cnt  cell-value] (partition 2 (interleave (range) row-data))]
       (let [^Cell cell (.createCell row cell-cnt)]
-        (.setCellValue cell ^String cell-value)))))
+        (set-value cell cell-value)))))
 
 (defn ^:private add-sheet
   [^Workbook ws ^String sheet-name data]
@@ -34,7 +43,10 @@
 (defn ^:private read-cell
   [^Cell cell]
   (condp = (.getCellType cell)
-    CellType/STRING (.getStringCellValue cell)))
+    CellType/STRING (.getStringCellValue cell)
+    CellType/NUMERIC (.getNumericCellValue cell)
+    CellType/BLANK nil
+    CellType/BOOLEAN (.getBooleanCellValue cell)))
 
 (defn ^:private read-row
   [^Row row]
