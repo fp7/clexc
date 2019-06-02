@@ -3,20 +3,21 @@
   (:import (org.apache.poi.ss.usermodel Cell)
            (org.apache.poi.ss.usermodel CellType)
            (org.apache.poi.ss.usermodel Row)
-           (org.apache.poi.xssf.usermodel XSSFWorkbook)
-           (org.apache.poi.xssf.usermodel XSSFSheet)))
+           (org.apache.poi.ss.usermodel Sheet)
+           (org.apache.poi.ss.usermodel Workbook)
+           (org.apache.poi.xssf.usermodel XSSFWorkbook)))
 
 (set! *warn-on-reflection* true)
 
 (defn ^:private add-row
-  [^XSSFSheet sheet ^long cnt row-data]
+  [^Sheet sheet ^long cnt row-data]
   (let [^Row row (.createRow sheet cnt)]
     (doseq [[cell-cnt  cell-value] (partition 2 (interleave (range) row-data))]
       (let [^Cell cell (.createCell row cell-cnt)]
         (.setCellValue cell ^String cell-value)))))
 
 (defn ^:private add-sheet
-  [^XSSFWorkbook ws ^String sheet-name data]
+  [^Workbook ws ^String sheet-name data]
   (let [sheet (.createSheet ws sheet-name)]
     (doseq [[cnt row] (partition 2 (interleave (range) data))]
       (add-row sheet cnt row ))))
@@ -42,7 +43,7 @@
         (seq row)))
 
 (defn ^:private read-sheet
-  [^XSSFSheet sheet]
+  [^Sheet sheet]
   [(.getSheetName sheet)
    (into []
          (map read-row)
