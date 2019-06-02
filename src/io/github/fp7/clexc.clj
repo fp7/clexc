@@ -1,6 +1,7 @@
 (ns io.github.fp7.clexc
   (:require [clojure.java.io :as io])
   (:import (org.apache.poi.ss.usermodel Cell)
+           (org.apache.poi.ss.usermodel CellType)
            (org.apache.poi.ss.usermodel Row)
            (org.apache.poi.xssf.usermodel XSSFWorkbook)
            (org.apache.poi.xssf.usermodel XSSFSheet)))
@@ -28,6 +29,39 @@
     (with-open [c (io/output-stream p)]
       (.write ws c))))
 
+
+(defn ^:private read-cell
+  [^Cell cell]
+  (condp = (.getCellType cell)
+    CellType/STRING (.getStringCellValue cell)))
+
+(defn ^:private read-row
+  [^Row row]
+  (into []
+        (map read-cell)
+        (seq row)))
+
+(defn ^:private read-sheet
+  [^XSSFSheet sheet]
+  [(.getSheetName sheet)
+   (into []
+         (map read-row)
+         (seq sheet))])
+
+(defn read-xlsx
+  [p]
+  (with-open [c (io/input-stream p)]
+    (let [ws (XSSFWorkbook. c)]
+      (into {}
+            (map read-sheet)
+            (seq ws)))))
+
+
 (comment
-  (write-xlsx "foo.xlsx" {"My sheet" [["hello world" "moin moin"] ["foo"]]})
+  (read-xlsx "foo.xlsx")
+  )
+
+(comment
+  (write-xlsx "foo.xlsx" {"My sheet" [["hello world" "moin moin"] ["foo"]]
+                          "foobar" [[]]})
   )
