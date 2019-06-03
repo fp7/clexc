@@ -26,3 +26,7 @@
 (t/deftest simple-read-write-with-boolean-comparison
   (let [example {"sheet 1" [[true]]}]
     (t/is (= example (write-and-reread example)))))
+
+(t/deftest simple-read-write-with-boolean-comparison
+  (let [example {"sheet 1" [[(java.util.Date.)]]}]
+    (t/is (= example (write-and-reread example)))))

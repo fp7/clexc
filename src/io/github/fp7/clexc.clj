@@ -1,7 +1,9 @@
 (ns io.github.fp7.clexc
   (:require [clojure.java.io :as io])
-  (:import (org.apache.poi.ss.usermodel Cell)
+  (:import (org.apache.poi.ss.usermodel BuiltinFormats)
+           (org.apache.poi.ss.usermodel Cell)
            (org.apache.poi.ss.usermodel CellType)
+           (org.apache.poi.ss.usermodel DateUtil)
            (org.apache.poi.ss.usermodel Row)
            (org.apache.poi.ss.usermodel Sheet)
            (org.apache.poi.ss.usermodel Workbook)
@@ -16,6 +18,13 @@
     (number? cell-value) (.setCellValue cell (double cell-value))
     (boolean? cell-value) (.setCellValue cell (boolean cell-value))
     (nil? cell-value) (.setBlank cell)
+    (inst? cell-value) (let [wb (.. cell (getSheet) (getWorkbook))
+                             cs (.createCellStyle wb)]
+                         (doto cell
+                           (.setCellValue (java.util.Date. (long (inst-ms cell-value))))
+                           (.setCellStyle (doto cs
+                                            (.setDataFormat
+                                             (BuiltinFormats/getBuiltinFormat "m/d/yy h:mm"))))))
     :else (throw (ex-info "Value can not be set in cell" {:type (type cell-value)}))))
 
 (defn ^:private add-row
@@ -42,11 +51,13 @@
 
 (defn ^:private read-cell
   [^Cell cell]
-  (condp = (.getCellType cell)
-    CellType/STRING (.getStringCellValue cell)
-    CellType/NUMERIC (.getNumericCellValue cell)
-    CellType/BLANK nil
-    CellType/BOOLEAN (.getBooleanCellValue cell)))
+  (cond (DateUtil/isCellDateFormatted cell) (.getDateCellValue cell)
+        :else
+        (condp = (.getCellType cell)
+          CellType/STRING (.getStringCellValue cell)
+          CellType/NUMERIC (.getNumericCellValue cell)
+          CellType/BLANK nil
+          CellType/BOOLEAN (.getBooleanCellValue cell))))
 
 (defn ^:private read-row
   [^Row row]
