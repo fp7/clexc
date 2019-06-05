@@ -18,22 +18,10 @@
                    (map (fn [e] (.name e)))
                    (CellType/values))))))
 
-(t/deftest simple-read-write-with-strings-comparison
-  (let [example {"sheet 1" [["hello" "world!"] ["foo bar"]]}]
-    (t/is (= example (write-and-reread example)))))
-
-(t/deftest simple-read-write-with-numeric-comparison
-  (let [example {"sheet 1" [["hello" "world!"] ["foo bar" 1.0]]}]
-    (t/is (= example (write-and-reread example)))))
-
-(t/deftest simple-read-write-with-nil-comparison
-  (let [example {"sheet 1" [[nil]]}]
-    (t/is (= example (write-and-reread example)))))
-
-(t/deftest simple-read-write-with-boolean-comparison
-  (let [example {"sheet 1" [[true]]}]
-    (t/is (= example (write-and-reread example)))))
-
-(t/deftest simple-read-write-with-date-comparison
-  (let [example {"sheet 1" [[(java.util.Date.)]]}]
-    (t/is (= example (write-and-reread example)))))
+(t/deftest simple-read-write-cycles
+  (t/are [example] (= example (write-and-reread example))
+    {"sheet 1" [["hello" "world!"] ["foo bar"]]}
+    {"sheet 1" [["hello" "world!"] ["foo bar" 1.0]]}
+    {"sheet 1" [[nil]]}
+    {"sheet 1" [[true]]}
+    {"sheet 1" [[(java.util.Date.)]]}))
