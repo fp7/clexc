@@ -25,3 +25,26 @@
     {"sheet 1" [[nil]]}
     {"sheet 1" [[true]]}
     {"sheet 1" [[(java.util.Date.)]]}))
+
+
+(t/deftest simple-read-write-cycle-should-drop-wrapper
+
+  (let [test-date (java.util.Date.)]
+    (t/are [expected sheet] (= expected (write-and-reread sheet))
+      {"sheet 1" [["hello" "world!"] ["foo bar"]]}
+      {"sheet 1" [[{:value "hello"} "world!"] ["foo bar"]]}
+
+      {"sheet 1" [["hello" "world!"] ["foo bar" 1.0]]}
+      {"sheet 1" [["hello" "world!"] ["foo bar" {:value 1.0}]]}
+
+      {"sheet 1" [[nil]]}
+      {"sheet 1" [[{}]]}
+
+      {"sheet 1" [[nil]]}
+      {"sheet 1" [[{:value nil}]]}
+
+      {"sheet 1" [[true]]}
+      {"sheet 1" [[{:value true}]]}
+
+      {"sheet 1" [[test-date]]}
+      {"sheet 1" [[{:value test-date}]]})))

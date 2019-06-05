@@ -13,19 +13,22 @@
 
 (defn ^:private set-value
   [^Cell cell cell-value]
-  (cond
-    (string? cell-value) (.setCellValue cell ^String cell-value)
-    (number? cell-value) (.setCellValue cell (double cell-value))
-    (boolean? cell-value) (.setCellValue cell (boolean cell-value))
-    (nil? cell-value) (.setBlank cell)
-    (inst? cell-value) (let [wb (.. cell (getSheet) (getWorkbook))
-                             cs (.createCellStyle wb)]
-                         (doto cell
-                           (.setCellValue (java.util.Date. (long (inst-ms cell-value))))
-                           (.setCellStyle (doto cs
-                                            (.setDataFormat
-                                             (BuiltinFormats/getBuiltinFormat "m/d/yy h:mm"))))))
-    :else (throw (ex-info "Value can not be set in cell" {:type (type cell-value)}))))
+  (let [cv (cond
+             (map? cell-value) (:value cell-value)
+             :else cell-value)]
+    (cond
+      (string? cv) (.setCellValue cell ^String cv)
+      (number? cv) (.setCellValue cell (double cv))
+      (boolean? cv) (.setCellValue cell (boolean cv))
+      (nil? cv) (.setBlank cell)
+      (inst? cv) (let [wb (.. cell (getSheet) (getWorkbook))
+                       cs (.createCellStyle wb)]
+                   (doto cell
+                     (.setCellValue (java.util.Date. (long (inst-ms cv))))
+                     (.setCellStyle (doto cs
+                                      (.setDataFormat
+                                       (BuiltinFormats/getBuiltinFormat "m/d/yy h:mm"))))))
+      :else (throw (ex-info "Value can not be set in cell" {:type (type cv)})))))
 
 (defn ^:private add-row
   [^Sheet sheet ^long cnt row-data]
