@@ -51,13 +51,15 @@
 
 (defn ^:private read-cell
   [^Cell cell]
-  (cond (DateUtil/isCellDateFormatted cell) (.getDateCellValue cell)
-        :else
-        (condp = (.getCellType cell)
-          CellType/STRING (.getStringCellValue cell)
-          CellType/NUMERIC (.getNumericCellValue cell)
-          CellType/BLANK nil
-          CellType/BOOLEAN (.getBooleanCellValue cell))))
+  (cond (= CellType/STRING (.getCellType cell)) (.getStringCellValue cell)
+        (= CellType/BLANK (.getCellType cell)) nil
+        (= CellType/BOOLEAN (.getCellType cell)) (.getBooleanCellValue cell)
+
+        (#{CellType/FORMULA CellType/_NONE CellType/ERROR} (.getCellType cell))
+        (throw (ex-info "Don't know how to handle cell-type" {:cell-type (.getCellType cell)}))
+
+        (DateUtil/isCellDateFormatted cell) (.getDateCellValue cell)
+        (= CellType/NUMERIC (.getCellType cell)) (.getNumericCellValue cell)))
 
 (defn ^:private read-row
   [^Row row]
