@@ -64,3 +64,12 @@
                                                  {:cell-format "m/d/yy"})]]})
                 (get "sheet 1")
                 (ffirst))))))
+
+(t/deftest non-builtin-format-should-reside-in-meta
+  (t/is (= {:cell-format "h"}
+           (meta
+            (-> (write-and-reread {"sheet 1" [[(with-meta
+                                                 {:value (java.util.Date.)}
+                                                 {:cell-format "h"})]]})
+                (get "sheet 1")
+                (ffirst))))))

@@ -1,7 +1,6 @@
 (ns io.github.fp7.clexc
   (:require [clojure.java.io :as io])
-  (:import (org.apache.poi.ss.usermodel BuiltinFormats)
-           (org.apache.poi.ss.usermodel Cell)
+  (:import (org.apache.poi.ss.usermodel Cell)
            (org.apache.poi.ss.usermodel CellType)
            (org.apache.poi.ss.usermodel DateUtil)
            (org.apache.poi.ss.usermodel Row)
@@ -11,26 +10,25 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^:private DEFAULT_DATE_FORMAT (BuiltinFormats/getBuiltinFormat "m/d/yy h:mm"))
+(def ^:private DEFAULT_DATE_FORMAT "m/d/yy h:mm")
 
 (defn ^:private set-value
   [^Cell cell cell-value]
   (let [cv (cond
              (map? cell-value) (:value cell-value)
-             :else cell-value)]
+             :else cell-value)
+        wb (.. cell (getSheet) (getWorkbook))]
+    (when-let [^String cf (or (:cell-format (meta cell-value))
+                              (and (inst? cv)
+                                   DEFAULT_DATE_FORMAT))]
+      (.setCellStyle cell (doto (.createCellStyle wb)
+                            (.setDataFormat (.. wb (createDataFormat) (getFormat cf))))))
     (cond
       (string? cv) (.setCellValue cell ^String cv)
       (number? cv) (.setCellValue cell (double cv))
       (boolean? cv) (.setCellValue cell (boolean cv))
       (nil? cv) (.setBlank cell)
-      (inst? cv) (let [wb (.. cell (getSheet) (getWorkbook))
-                       cs (.createCellStyle wb)]
-                   (doto cell
-                     (.setCellValue (java.util.Date. (long (inst-ms cv))))
-                     (.setCellStyle (doto cs
-                                      (.setDataFormat (if-let [cf (:cell-format (meta cell-value))]
-                                                        (BuiltinFormats/getBuiltinFormat ^String cf)
-                                                        DEFAULT_DATE_FORMAT))))))
+      (inst? cv) (.setCellValue cell (java.util.Date. (long (inst-ms cv))))
       :else (throw (ex-info "Value can not be set in cell" {:type (type cv)})))))
 
 (defn ^:private add-row
@@ -56,10 +54,9 @@
 
 (defn ^:private read-cell
   [^Cell cell]
-  (let [cs (.. cell (getCellStyle) (getDataFormat))
-        m (when (not (#{DEFAULT_DATE_FORMAT
-                        (BuiltinFormats/getBuiltinFormat "General")} cs))
-            {:cell-format (BuiltinFormats/getBuiltinFormat cs)})
+  (let [cs (.. cell (getCellStyle) (getDataFormatString))
+        m (when (not (#{DEFAULT_DATE_FORMAT "General"} cs))
+            {:cell-format cs})
         v (cond (= CellType/STRING (.getCellType cell)) (.getStringCellValue cell)
                 (= CellType/BLANK (.getCellType cell)) nil
                 (= CellType/BOOLEAN (.getCellType cell)) (.getBooleanCellValue cell)
@@ -102,5 +99,5 @@
 (comment
   (write-xlsx "foo.xlsx"  {"sheet 1" [[(with-meta
                                          {:value (java.util.Date.)}
-                                         {:cell-format "m/d/yy"})]]})
+                                         {:cell-format "h"})]]})
   )
