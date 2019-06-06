@@ -11,6 +11,8 @@
 
 (set! *warn-on-reflection* true)
 
+(def ^:private DEFAULT_DATE_FORMAT (BuiltinFormats/getBuiltinFormat "m/d/yy h:mm"))
+
 (defn ^:private set-value
   [^Cell cell cell-value]
   (let [cv (cond
@@ -26,8 +28,9 @@
                    (doto cell
                      (.setCellValue (java.util.Date. (long (inst-ms cv))))
                      (.setCellStyle (doto cs
-                                      (.setDataFormat
-                                       (BuiltinFormats/getBuiltinFormat "m/d/yy h:mm"))))))
+                                      (.setDataFormat (if-let [cf (:cell-format (meta cell-value))]
+                                                        (BuiltinFormats/getBuiltinFormat ^String cf)
+                                                        DEFAULT_DATE_FORMAT))))))
       :else (throw (ex-info "Value can not be set in cell" {:type (type cv)})))))
 
 (defn ^:private add-row
@@ -51,18 +54,24 @@
     (with-open [c (io/output-stream p)]
       (.write ws c))))
 
-
 (defn ^:private read-cell
   [^Cell cell]
-  (cond (= CellType/STRING (.getCellType cell)) (.getStringCellValue cell)
-        (= CellType/BLANK (.getCellType cell)) nil
-        (= CellType/BOOLEAN (.getCellType cell)) (.getBooleanCellValue cell)
+  (let [cs (.. cell (getCellStyle) (getDataFormat))
+        m (when (not (#{DEFAULT_DATE_FORMAT
+                        (BuiltinFormats/getBuiltinFormat "General")} cs))
+            {:cell-format (BuiltinFormats/getBuiltinFormat cs)})
+        v (cond (= CellType/STRING (.getCellType cell)) (.getStringCellValue cell)
+                (= CellType/BLANK (.getCellType cell)) nil
+                (= CellType/BOOLEAN (.getCellType cell)) (.getBooleanCellValue cell)
 
-        (#{CellType/FORMULA CellType/_NONE CellType/ERROR} (.getCellType cell))
-        (throw (ex-info "Don't know how to handle cell-type" {:cell-type (.getCellType cell)}))
+                (#{CellType/FORMULA CellType/_NONE CellType/ERROR} (.getCellType cell))
+                (throw (ex-info "Don't know how to handle cell-type" {:cell-type (.getCellType cell)}))
 
-        (DateUtil/isCellDateFormatted cell) (.getDateCellValue cell)
-        (= CellType/NUMERIC (.getCellType cell)) (.getNumericCellValue cell)))
+                (DateUtil/isCellDateFormatted cell) (.getDateCellValue cell)
+                (= CellType/NUMERIC (.getCellType cell)) (.getNumericCellValue cell))]
+    (if (empty? m)
+      v
+      (with-meta {:value v} m))))
 
 (defn ^:private read-row
   [^Row row]
@@ -91,6 +100,7 @@
   )
 
 (comment
-  (write-xlsx "foo.xlsx" {"My sheet" [["hello world" "moin moin"] ["foo"]]
-                          "foobar" [[]]})
+  (write-xlsx "foo.xlsx"  {"sheet 1" [[(with-meta
+                                         {:value (java.util.Date.)}
+                                         {:cell-format "m/d/yy"})]]})
   )
