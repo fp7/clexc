@@ -73,3 +73,12 @@
                                                  {:cell-format "h"})]]})
                 (get "sheet 1")
                 (ffirst))))))
+
+(t/deftest ints-should-be-formattable
+  (t/is (= {:cell-format "00#,###"}
+           (meta
+            (-> (write-and-reread {"sheet 1" [[(with-meta
+                                                 {:value 400000}
+                                                 {:cell-format "00#,###"})]]})
+                (get "sheet 1")
+                (ffirst))))))
