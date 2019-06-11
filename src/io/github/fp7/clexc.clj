@@ -1,3 +1,11 @@
+; Copyright (c) 2019 Finn Petersen
+;
+; This program and the accompanying materials are made
+; available under the terms of the Eclipse Public License 2.0
+; which is available at https://www.eclipse.org/legal/epl-2.0/
+;
+; SPDX-License-Identifier: EPL-2.0
+
 (ns io.github.fp7.clexc
   (:require [clojure.java.io :as io])
   (:import (org.apache.poi.ss.usermodel Cell)
