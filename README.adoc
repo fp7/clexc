@@ -1,0 +1,49 @@
+= clexc
+
+A data driven wrapper around apache poi.
+
+== Rationale
+While there is https://github.com/mjul/docjure[docjure], i didn't want to know or
+remember the terminology of apache poi. So this lib just parses and writes to and
+from clojure data structures.
+
+== Notes
+The whole workbook is loaded eagerly into memory. So expect some memory usage
+if you want to load a million cells.
+
+By now there is a ton of unsupported stuff. No merged cells, cell formatting beyond
+data formats, alignment, comments, cell verification, cell styles for data formats are
+not reused.
+
+== Usage
+
+=== deps.edn
+
+[source,clojure]
+----
+{;...
+ :deps {;...
+        io.github.fp7.clexc {:git/url "https://github.com/fp7/clexc"
+                             :sha "a022a747c106fb1638d42fc988cabc51dd5fd112"}}
+ }
+----
+
+=== Reading a sheet
+
+[source,clojure]
+----
+user> (require '[io.github.fp7.clexc :as clexc])
+nil
+user> (clexc/read-xlsx "foo.xlsx")
+{"sheet 1" [[1.0] [2.0 "foo"]]}
+----
+
+=== Writing a sheet
+
+[source,clojure]
+----
+user> (require '[io.github.fp7.clexc :as clexc])
+nil
+user> (clexc/write-xlsx "foo.xlsx" {"sheet 1" [[1.0] [2.0 "foo"]]})
+nil
+----
