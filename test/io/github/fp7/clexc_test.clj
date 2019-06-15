@@ -1,15 +1,16 @@
-; Copyright (c) 2019 Finn Petersen
-;
-; This program and the accompanying materials are made
-; available under the terms of the Eclipse Public License 2.0
-; which is available at https://www.eclipse.org/legal/epl-2.0/
-;
-; SPDX-License-Identifier: EPL-2.0
+;; Copyright (c) 2019 Finn Petersen
+;;
+;; This program and the accompanying materials are made
+;; available under the terms of the Eclipse Public License 2.0
+;; which is available at https://www.eclipse.org/legal/epl-2.0/
+;;
+;; SPDX-License-Identifier: EPL-2.0
 
 (ns io.github.fp7.clexc-test
   (:require [clojure.test :as t]
             [io.github.fp7.clexc :as clexc])
-  (:import (org.apache.poi.ss.usermodel CellType)))
+  (:import (org.apache.poi.ss.usermodel CellType)
+           (org.apache.poi.xssf.usermodel XSSFWorkbook)))
 
 
 (defn ^:private write-and-reread
@@ -90,3 +91,15 @@
                                                  {:cell-format "00#,###"})]]})
                 (get "sheet 1")
                 (ffirst))))))
+
+
+(t/deftest testing-sparse-rows
+  (let [cell (.. (XSSFWorkbook.)
+               (createSheet "foo")
+               (createRow 1)
+               (createCell 1))
+        os (java.io.ByteArrayOutputStream.)]
+    (.setCellValue cell "foo")
+    (.write (.. cell (getSheet) (getWorkbook)) os)
+    (t/is (= {"foo" [nil [nil "foo"]]}
+             (clexc/read-xlsx (java.io.ByteArrayInputStream. (.toByteArray os)))))))

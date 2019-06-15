@@ -1,10 +1,10 @@
-; Copyright (c) 2019 Finn Petersen
-;
-; This program and the accompanying materials are made
-; available under the terms of the Eclipse Public License 2.0
-; which is available at https://www.eclipse.org/legal/epl-2.0/
-;
-; SPDX-License-Identifier: EPL-2.0
+;; Copyright (c) 2019 Finn Petersen
+;;
+;; This program and the accompanying materials are made
+;; available under the terms of the Eclipse Public License 2.0
+;; which is available at https://www.eclipse.org/legal/epl-2.0/
+;;
+;; SPDX-License-Identifier: EPL-2.0
 
 (ns io.github.fp7.clexc
   (:require [clojure.java.io :as io])
@@ -62,42 +62,50 @@
 
 (defn ^:private read-cell
   [^Cell cell]
-  (let [cs (.. cell (getCellStyle) (getDataFormatString))
-        m (when (not (#{DEFAULT_DATE_FORMAT "General"} cs))
-            {:cell-format cs})
-        v (cond (= CellType/STRING (.getCellType cell)) (.getStringCellValue cell)
-                (= CellType/BLANK (.getCellType cell)) nil
-                (= CellType/BOOLEAN (.getCellType cell)) (.getBooleanCellValue cell)
+  (when cell
+    (let [cs (.. cell (getCellStyle) (getDataFormatString))
+          m (when (not (#{DEFAULT_DATE_FORMAT "General"} cs))
+              {:cell-format cs})
+          v (cond (= CellType/STRING (.getCellType cell)) (.getStringCellValue cell)
+                  (= CellType/BLANK (.getCellType cell)) nil
+                  (= CellType/BOOLEAN (.getCellType cell)) (.getBooleanCellValue cell)
 
-                (#{CellType/FORMULA CellType/_NONE CellType/ERROR} (.getCellType cell))
-                (throw (ex-info "Don't know how to handle cell-type" {:cell-type (.getCellType cell)}))
+                  (#{CellType/FORMULA CellType/_NONE CellType/ERROR} (.getCellType cell))
+                  (throw (ex-info "Don't know how to handle cell-type" {:cell-type (.getCellType cell)}))
 
-                (DateUtil/isCellDateFormatted cell) (.getDateCellValue cell)
-                (= CellType/NUMERIC (.getCellType cell)) (.getNumericCellValue cell))]
-    (if (empty? m)
-      v
-      (with-meta {:value v} m))))
+                  (DateUtil/isCellDateFormatted cell) (.getDateCellValue cell)
+                  (= CellType/NUMERIC (.getCellType cell)) (.getNumericCellValue cell))]
+      (if (empty? m)
+        v
+        (with-meta {:value v} m)))))
 
 (defn ^:private read-row
   [^Row row]
-  (into []
-        (map read-cell)
-        (seq row)))
+  (when row
+    (let [lastcell (.getLastCellNum row)]
+      (into []
+            (comp
+             (map (fn [num] (.getCell row num)))
+             (map read-cell))
+            (range lastcell)))))
 
 (defn ^:private read-sheet
   [^Sheet sheet]
-  [(.getSheetName sheet)
-   (into []
-         (map read-row)
-         (seq sheet))])
+  (let [lastrow (.getLastRowNum sheet)]
+    [(.getSheetName sheet)
+     (into []
+           (comp
+            (map (fn [num] (.getRow sheet num)))
+            (map read-row))
+           (range (inc lastrow)))]))
 
 (defn read-xlsx
   [p]
   (with-open [c (io/input-stream p)]
-    (let [ws (XSSFWorkbook. c)]
+    (let [wb (XSSFWorkbook. c)]
       (into {}
             (map read-sheet)
-            (seq ws)))))
+            (seq wb)))))
 
 
 (comment
