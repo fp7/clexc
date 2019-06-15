@@ -93,13 +93,18 @@
                 (ffirst))))))
 
 
-(t/deftest testing-sparse-rows
+(t/deftest test-reading-sparse-rows-and-cells
   (let [cell (.. (XSSFWorkbook.)
-               (createSheet "foo")
-               (createRow 1)
-               (createCell 1))
+                 (createSheet "foo")
+                 (createRow 1)
+                 (createCell 1))
         os (java.io.ByteArrayOutputStream.)]
     (.setCellValue cell "foo")
     (.write (.. cell (getSheet) (getWorkbook)) os)
     (t/is (= {"foo" [nil [nil "foo"]]}
              (clexc/read-xlsx (java.io.ByteArrayInputStream. (.toByteArray os)))))))
+
+
+(t/deftest test-writing-sparse-rows-and-cells
+  (t/is (= {"foo" [nil [nil "foo"]]}
+           (write-and-reread {"foo" [nil [nil "foo"]]}))))

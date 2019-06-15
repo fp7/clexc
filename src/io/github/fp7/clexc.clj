@@ -40,17 +40,18 @@
       :else (throw (ex-info "Value can not be set in cell" {:type (type cv)})))))
 
 (defn ^:private add-row
-  [^Sheet sheet ^long cnt row-data]
-  (let [^Row row (.createRow sheet cnt)]
-    (doseq [[cell-cnt  cell-value] (partition 2 (interleave (range) row-data))]
-      (let [^Cell cell (.createCell row cell-cnt)]
-        (set-value cell cell-value)))))
+  [^Sheet sheet cnt row-data]
+  (when row-data
+    (let [^Row row (.createRow sheet cnt)]
+      (doseq [[cell-cnt  cell-value] (partition 2 (interleave (range) row-data))]
+        (let [^Cell cell (.createCell row cell-cnt)]
+          (set-value cell cell-value))))))
 
 (defn ^:private add-sheet
   [^Workbook ws ^String sheet-name data]
   (let [sheet (.createSheet ws sheet-name)]
     (doseq [[cnt row] (partition 2 (interleave (range) data))]
-      (add-row sheet cnt row ))))
+      (add-row sheet cnt row))))
 
 (defn write-xlsx
   [p xlsx]
@@ -113,7 +114,5 @@
   )
 
 (comment
-  (write-xlsx "foo.xlsx"  {"sheet 1" [[(with-meta
-                                         {:value (java.util.Date.)}
-                                         {:cell-format "h"})]]})
+  (write-xlsx "foo.xlsx"  {"sheet 1" [nil [nil "foo"]]})
   )
